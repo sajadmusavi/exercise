@@ -10,11 +10,20 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 import json
 from jdatetime import datetime, timedelta
+from prometheus_flask_exporter import PrometheusMetrics
+
+from googletrans import Translator
+# Initialize Translator object
+
+
+translator = Translator()
 
 # Flask constructor takes the name of 
 # current module (__name__) as argument.
 app = Flask(__name__)
- 
+
+
+metrics = PrometheusMetrics(app)
 # The route() function of the Flask class is a decorator, 
 # which tells the application which URL should call 
 # the associated function.
@@ -68,15 +77,26 @@ def hello_world(report_count):
 
 # Modify the structure if needed
 # For example, let's say you want to combine the elements of each list into a single string
-    modified_data = {
-    'data': [{'label': data['label'][i], 'company_name': data['company_name'][i], 'date': data['date'][i]} for i in range(len(data['label']))]
-    }
+    modified_data = {'data': [{'label': data['label'][i], 'company_name': data['company_name'][i], 'date': data['date'][i]} for i in range(len(data['label']))] }
 
 # Convert the modified data back to a JSON string
     modified_json = json.dumps(modified_data, ensure_ascii=False)
+    modified_json = json.loads(modified_json)
 
+    metric_name = "my_metric"
+    metric = []
 
-    return modified_json
+    for entry in modified_json['data']:
+        label_value = entry['label']
+        date_str = entry['date']
+
+        # Generate Prometheus metric
+        prom_metric = f"{metric_name}{{label=\"{label_value}\", date=\"{date_str}\"}} "
+        metric.append(prom_metric)
+    print(metric)
+
+    return metric
+
 
 
 @app.route('/rport/')
@@ -126,22 +146,32 @@ def hello_world_default():
     data['date'] = dates
     json_data = json.dumps(data, ensure_ascii=False)
     data_json = json.loads(json_data)
+    
 
 # Modify the structure if needed
 # For example, let's say you want to combine the elements of each list into a single string
-    modified_data = {
-    'data': [{'label': data['label'][i], 'company_name': data['company_name'][i], 'date': data['date'][i]} for i in range(len(data['label']))]
-    }
+    modified_data = {'data': [{'label': data['label'][i], 'company_name': data['company_name'][i], 'date': data['date'][i]} for i in range(len(data['label']))]}
 
 # Convert the modified data back to a JSON string
     modified_json = json.dumps(modified_data, ensure_ascii=False)
+    modified_json = json.loads(modified_json)
+    
+    metric_name = "my_metric"
+    
+    metric = []
+    for entry in modified_json['data']:
+        label_value = entry['label']
+        date_str = entry['date']
 
-
-    return modified_json
+        # Generate Prometheus metric
+        prom_metric = f"{metric_name}{{label=\"{label_value}\", date=\"{date_str}\"}} "
+        metric.append(prom_metric)
+    print(metric)
+    return metric
 
            
 # main driver function
 if __name__ == '__main__':
     # run() method of Flask class runs the application 
     # on the local development server.
-    app.run(port=9700)
+    app.run(port=8992)
