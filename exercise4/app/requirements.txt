@@ -1,0 +1,4 @@
+flask
+jdatetime
+selenium
+gunicorn
